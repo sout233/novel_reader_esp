@@ -13,6 +13,18 @@ int currentLine = 0;
 TFT_eSPI tft = TFT_eSPI();
 EasyButton flashButton(BUTTON_PIN);
 
+enum ViewType{
+    CLOCK,
+    NOVEL,
+    GOTO_LINE,
+};
+void initDisplay()
+{
+    tft.init();
+    tft.setRotation(0);
+    tft.fillScreen(TFT_BLACK);
+}
+
 bool openStoryFile()
 {
     if (!storyFile)
@@ -52,168 +64,6 @@ String getNextLine()
     }
     currentLine++;
     return line;
-}
-
-class IView
-{
-public:
-    void setTFT(TFT_eSPI *tft)
-    {
-        _tft = tft;
-    }
-    void setXFont(XFont *xFont)
-    {
-        _xFont = xFont;
-    }
-    void setFlashButton(EasyButton *flashButton)
-    {
-        _flashButton = flashButton;
-        _flashButton->begin();
-        _flashButton->onPressed([this]()
-                                { onPressed(); });
-        _flashButton->onSequence(3, 500, [this]()
-                                 { onTriplePressed(); });
-    }
-    void reInitXFont(const char *fontPath)
-    {
-        _xFont->reInitZhiku(fontPath);
-    }
-    virtual void onPressed() = 0;
-    virtual void onTriplePressed() = 0;
-    virtual void onHold() = 0;
-    virtual void render() = 0;
-
-protected:
-    TFT_eSPI *_tft;
-    XFont *_xFont;
-    EasyButton *_flashButton;
-};
-
-class GotoView : public IView
-{
-public:
-    void render() override
-    {
-        displayText(getNextLine());
-    }
-    void onPressed() override
-    {
-        displayText(getNextLine());
-    }
-    void onTriplePressed() override
-    {
-        if (!openStoryFile())
-            return;
-
-        for (int i = 0; i < 40; i++)
-        {
-            String line = storyFile.readStringUntil('\n');
-            if (line.length() == 0)
-            {
-                storyFile.seek(0, SeekSet);
-                currentLine = 0;
-                break;
-            }
-            currentLine++;
-        }
-
-        String line = storyFile.readStringUntil('\n');
-        displayText(line);
-    }
-    void onHold() override{}
-};
-
-class NovelView : public IView
-{
-public:
-    void render() override
-    {
-        displayText(getNextLine());
-    }
-    void onPressed() override
-    {
-        displayText(getNextLine());
-    }
-    void onTriplePressed() override
-    {
-        if (!openStoryFile())
-            return;
-
-        for (int i = 0; i < 40; i++)
-        {
-            String line = storyFile.readStringUntil('\n');
-            if (line.length() == 0)
-            {
-                storyFile.seek(0, SeekSet);
-                currentLine = 0;
-                break;
-            }
-            currentLine++;
-        }
-
-        String line = storyFile.readStringUntil('\n');
-        displayText(line);
-    }
-    void onHold() override{
-            if (!openStoryFile())
-        return;
-
-    if (currentLine > 1)
-    {
-        storyFile.seek(0, SeekSet);
-        for (int i = 0; i < currentLine - 1; i++)
-        {
-            storyFile.readStringUntil('\n');
-        }
-        currentLine--;
-    }
-    else
-    {
-        storyFile.seek(0, SeekSet);
-        currentLine = 0;
-    }
-
-    String line = storyFile.readStringUntil('\n');
-    displayText(line);
-    }
-};
-
-IView *currentView;
-
-class ClockView : public IView
-{
-public:
-    void render() override
-    {
-        _tft->fillScreen(TFT_BLACK);
-        _tft->setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft->setCursor(0, 0);
-        _tft->setTextSize(2);
-        _tft->setRotation(1);
-        _tft->printf("11:45");
-    }
-    void onPressed() override
-    {
-    }
-    void onTriplePressed() override
-    {
-        currentView = new NovelView();
-        currentView->setTFT(&tft);
-        currentView->setXFont(_xFont);
-        currentView->setFlashButton(&flashButton);
-        currentView->render();
-    }
-    void onHold() override{}
-};
-
-void initDisplay()
-{
-    tft.init();
-
-    currentView->setTFT(&tft);
-    currentView->setXFont(_xFont);
-    currentView->setFlashButton(&flashButton);
-    currentView->render();
 }
 
 void onPressed()
