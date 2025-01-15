@@ -302,6 +302,12 @@ void onLongPressedForTwoSeconds()
         {
             renderNovel(currentLine - 50);
         }
+        // 0
+        else if (gotoLineViewCurrentSelection == 9)
+        {
+            gotoLineViewInput = gotoLineViewInput * 10;
+            renderGotoLine();
+        }
         // numbers
         else
         {
