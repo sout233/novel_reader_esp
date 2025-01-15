@@ -57,19 +57,58 @@ void displayText(const String &text)
     Serial.println("currentLine: " + String(currentLine));
 }
 
-String getNextLine()
+// String getNextLine()
+// {
+//     if (!openStoryFile())
+//         return "";
+//     String line = storyFile.readStringUntil('\n');
+//     if (line.length() == 0)
+//     {
+//         storyFile.seek(0, SeekSet);
+//         line = storyFile.readStringUntil('\n');
+//         currentLine = 0;
+//     }
+//     currentLine++;
+//     return line;
+// }
+
+void jumpToLine(int targetLine)
 {
     if (!openStoryFile())
-        return "";
-    String line = storyFile.readStringUntil('\n');
-    if (line.length() == 0)
+        return;
+
+    int linesToSkip = targetLine - currentLine;
+
+    Serial.println("jumpToLine: " + String(targetLine));
+    Serial.println("linesToSkip: " + String(linesToSkip));
+
+    if (linesToSkip < 0)
     {
         storyFile.seek(0, SeekSet);
-        line = storyFile.readStringUntil('\n');
-        currentLine = 0;
+        for (int i = 0; i < targetLine; i++)
+        {
+            storyFile.readStringUntil('\n');
+        }
+        currentLine = targetLine;
     }
-    currentLine++;
-    return line;
+    else
+    {
+        for (int i = 0; i < linesToSkip; i++)
+        {
+            String line = storyFile.readStringUntil('\n');
+            if (line.length() == 0)
+            {
+                storyFile.seek(0, SeekSet);
+                currentLine = 0;
+                break;
+            }
+            currentLine++;
+        }
+    }
+
+    String resultLine = storyFile.readStringUntil('\n');
+
+    displayText(resultLine);
 }
 
 void renderClock()
@@ -86,11 +125,10 @@ void renderClock()
     pinMode(BUTTON_PIN, INPUT);
 }
 
-void renderNovel()
+void renderNovel(int line)
 {
     currentView = NOVEL;
-    String line = getNextLine();
-    displayText(line);
+    jumpToLine(line);
 }
 
 int gotoLineViewCurrentSelection = 0;
@@ -115,7 +153,7 @@ void renderGotoLine()
     // keyboard
     tft.setCursor(0, 40);
     tft.setTextSize(1);
-    String keys[14] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "DEL", "AUTO", "BACK", "GO"};
+    String keys[14] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "DEL", "SUB50", "BACK", "GO"};
     for (int i = 0; i < 14; i++)
     {
         String key_str = keys[i];
@@ -125,11 +163,7 @@ void renderGotoLine()
         }
         else if (i == 13)
         {
-            tft.setTextColor(TFT_RED, TFT_WHITE);
-        }
-        else if (i == 14)
-        {
-            tft.setTextColor(TFT_GREEN, TFT_WHITE);
+            tft.setTextColor(TFT_GREEN, TFT_BLACK);
         }
         else
         {
@@ -148,7 +182,7 @@ void onPressed()
     case CLOCK:
         break;
     case NOVEL:
-        displayText(getNextLine());
+        jumpToLine(currentLine + 1);
         break;
     case GOTO_LINE:
         gotoLineViewCurrentSelection++;
@@ -166,26 +200,26 @@ void onPressed()
 
 void onPressedFor()
 {
-    if (!openStoryFile())
-        return;
+    // if (!openStoryFile())
+    //     return;
 
-    if (currentLine > 1)
-    {
-        storyFile.seek(0, SeekSet);
-        for (int i = 0; i < currentLine - 1; i++)
-        {
-            storyFile.readStringUntil('\n');
-        }
-        currentLine--;
-    }
-    else
-    {
-        storyFile.seek(0, SeekSet);
-        currentLine = 0;
-    }
+    // if (currentLine > 1)
+    // {
+    //     storyFile.seek(0, SeekSet);
+    //     for (int i = 0; i < currentLine - 1; i++)
+    //     {
+    //         storyFile.readStringUntil('\n');
+    //     }
+    //     currentLine--;
+    // }
+    // else
+    // {
+    //     storyFile.seek(0, SeekSet);
+    //     currentLine = 0;
+    // }
 
-    String line = storyFile.readStringUntil('\n');
-    displayText(line);
+    // String line = storyFile.readStringUntil('\n');
+    // displayText(line);
 }
 
 void onTriplePressed()
@@ -238,7 +272,7 @@ void onLongPressedForTwoSeconds()
     switch (currentView)
     {
     case CLOCK:
-        renderNovel();
+        renderNovel(currentLine);
         break;
     case NOVEL:
         gotoLineViewInput = currentLine + 1;
@@ -250,14 +284,12 @@ void onLongPressedForTwoSeconds()
         // BACK
         if (gotoLineViewCurrentSelection == 12)
         {
-            currentLine-=2;
-            renderNovel();
+            renderNovel(currentLine);
         }
         // GO
         else if (gotoLineViewCurrentSelection == 13)
         {
-            currentLine = gotoLineViewInput - 2;
-            renderNovel();
+            renderNovel(gotoLineViewInput - 1);
         }
         // DEL
         else if (gotoLineViewCurrentSelection == 10)
@@ -265,11 +297,10 @@ void onLongPressedForTwoSeconds()
             gotoLineViewInput /= 10;
             renderGotoLine();
         }
-        // AUTO
+        // SUB50
         else if (gotoLineViewCurrentSelection == 11)
         {
-            gotoLineViewInput = currentLine + 1;
-            renderGotoLine();
+            renderNovel(currentLine - 50);
         }
         // numbers
         else
