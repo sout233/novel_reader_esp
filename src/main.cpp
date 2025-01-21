@@ -93,7 +93,7 @@ void jumpToLine(int targetLine)
     }
     else
     {
-        for (int i = 0; i < linesToSkip; i++)
+        for (int i = 1; i < linesToSkip; i++)
         {
             String line = storyFile.readStringUntil('\n');
             if (line.length() == 0)
@@ -107,6 +107,7 @@ void jumpToLine(int targetLine)
     }
 
     String resultLine = storyFile.readStringUntil('\n');
+    currentLine++;
 
     displayText(resultLine);
 }
